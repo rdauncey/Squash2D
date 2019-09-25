@@ -15,7 +15,8 @@ class Squash():
         self.paddle_width = paddle_width
         self.paddle_height = paddle_height
         self.ball_radius = ball_radius
-
+        
+        #Ensure paddle and ball remain within limits of screen
         self.max_paddle_x = self.screen_size[0] - self.paddle_width
         self.max_ball_x = self.screen_size[0] - (self.ball_radius*2)
         self.max_ball_y = self.screen_size[1] - (self.ball_radius*2)
@@ -51,6 +52,8 @@ class Squash():
         self.ball_vel = [self.ball_speed, -self.ball_speed]
 
     def key_press(self, key):
+        #Key press function that enables machine play
+        
         if key == 'left':
             self.paddle.left -= self.paddle_speed
             if self.paddle.left < 0:
@@ -78,32 +81,38 @@ class Squash():
     def move_ball(self):
         self.ball.left += self.ball_vel[0]
         self.ball.top += self.ball_vel[1]
-
+        
+        #Bounce ball off left wall
         if self.ball.left <= 0:
             self.ball.left = 0
             self.ball_vel[0] = -self.ball_vel[0]
-
+            
+        #Bounce ball off right wall
         elif self.ball.left >= self.max_ball_x:
             self.ball.left = self.max_ball_x
             self.ball_vel[0] = -self.ball_vel[0]
-
+        
+        #Bounce ball off top wall
         if self.ball.top < 0:
             self.ball.top = 0
             self.ball_vel[1] = -self.ball_vel[1]
 
     def collide(self):
+        #If ball collides with paddle, gain a point
         if self.ball.colliderect(self.paddle):
             self.ball.top = self.paddle_y - (self.ball_radius*2)
             self.ball_vel[1] = -self.ball_vel[1]
             self.score += 1
             self.reward += 10
-
+        
+        #If ball misses paddle, end game
         elif self.ball.top > self.paddle.top:
             self.state = self.GAME_OVER
             self.games += 1
             self.reward -= 10
 
     def game_step(self, action):
+        #Function to take a 'game step', with action input
 
         #self.clock.tick()
         #self.screen.fill((0,0,0))
@@ -130,6 +139,7 @@ class Squash():
         #pygame.display.flip()            
 
     def get_state(self):
+        #State is a concatenated tensor of the ball coordinates, ball velocity and paddle x-coordinate
         state = torch.cat((torch.tensor([self.ball.left, self.ball.top], dtype=torch.float32),
                                        torch.tensor(self.ball_vel, dtype=torch.float32),
                                        torch.tensor([self.paddle.left], dtype=torch.float32)), dim=0)
@@ -155,11 +165,57 @@ class Squash():
                                (self.ball.left + self.ball_radius, self.ball.top + self.ball_radius),
                                self.ball_radius)
             pygame.display.flip()
-            time.sleep(0.1)        
+            time.sleep(0.1)
+            
+    def human_game_loop(self):
+        #Allow for human play to test game functionality        
+        while self.gameExit is False:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    exit()
+
+            self.clock.tick(50)
+            self.screen.fill((0,0,0))
+            
+            #Check for key press
+            self.check_key_press()
+
+            #Take actions depending on states
+            if self.state == self.BALL_IN_PLAY:
+                self.move_ball()
+                self.collide()
+                
+            elif self.state == self.BALL_IN_PADDLE:
+                self.ball.left = self.paddle.left + self.paddle.width/2 - self.ball_radius
+                self.ball.top = self.paddle.top - (self.ball_radius*2)
+                self.show_message("PRESS SPACE TO LAUNCH THE BALL")
+            elif self.state == self.GAME_OVER:
+                self.show_message("GAME OVER. PRESS ENTER TO PLAY AGAIN")
+
+            #Draw paddle & ball
+            pygame.draw.rect(self.screen, (255,255,255), self.paddle)
+            pygame.draw.circle(self.screen, (255,255,255), (self.ball.left + self.ball_radius, self.ball.top + self.ball_radius), 
+                               self.ball_radius)
+            
+            pygame.display.flip()
+                        
+    def check_key_press(self):
+        keys = pygame.keys.get_pressed()
+        
+        if keys[pygame.K_LEFT]:
+            key = 'left'
+        
+        if keys[pygame.K_RIGHT]:
+            key = 'right'
+        
+        if keys[pygame.K_SPACE]:
+            key = 'space'
+        
+        if keys[pygame.K_RETURN]:
+            key = 'return'
+            
+        self.key_press(key)
+        
 
 #game = Squash()
 #game.test_game_loop()
-
-        
-
-
