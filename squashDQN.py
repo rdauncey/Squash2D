@@ -36,6 +36,8 @@ class DQN(nn.Module):
         self.fc1 = nn.Linear(input_dim, h1)
         self.fc2 = nn.Linear(h1, h2)
         self.fc3 = nn.Linear(h2, output_dim)
+        
+        #Try out different activation functions for learning
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
         self.tanh = nn.Tanh()
@@ -123,7 +125,6 @@ def optimize_model():
     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
 
     #Optimize
-    optimizer.zero_grad()
     loss.backward()
     for param in policy_net.parameters():
         param.grad.data.clamp_(-1, 1)
@@ -148,7 +149,7 @@ for i_episode in range(n_episodes):
     squash.init_game()
     
     while squash.gameExit is False:
-        
+        optimizer.zero_grad()
         current_state = squash.get_state()
         action = select_action(current_state)
         key = keys[action]
